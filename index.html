@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
+  <title>蛇棋中文学习游戏 · 清新图案版</title>
+  <style>
+    :root {
+      --bg: #f0f9f5;
+      --panel-bg: #ffffff;
+      --text: #2c3e50;
+      --accent: #e74c3c;
+      --accent2: #27ae60;
+      --gold: #f39c12;
+      --cell-light: #f9fefb;
+      --cell-dark: #e8f8f0;
+      --snake-body: #43a047;
+      --snake-belly: #a5d6a7;
+      --ladder-rail: #8d6e63;
+      --ladder-rung: #bcaaa4;
+      --player1: #ff5252;
+      --player2: #448aff;
+      --shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+      --radius: 20px;
+      --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(145deg, #f0f9f5 0%, #e6f7f2 40%, #f4fcf8 80%, #ecf9f3 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 15px;
+      color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .main-container {
+      display: flex;
+      gap: 24px;
+      max-width: 1300px;
+      width: 100%;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    /* 设置面板 */
+    .setup-panel {
+      background: var(--panel-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 32px 28px;
+      width: 100%;
+      max-width: 460px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      border: 1px solid rgba(0,0,0,0.04);
+    }
+    .setup-panel h2 {
+      text-align: center;
+      font-size: 1.8em;
+      color: #1e5d4c;
+      letter-spacing: 0.05em;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    .setup-panel h2 .icon {
+      font-size: 1.4em;
+      display: inline-block;
+      animation: bounce-icon 1.8s ease-in-out infinite;
+    }
+    @keyframes bounce-icon {
+      0%,100%{ transform: translateY(0); }
+      30%{ transform: translateY(-15px); }
+      50%{ transform: translateY(0); }
+      70%{ transform: translateY(-8px); }
+      85%{ transform: translateY(0); }
+    }
+    .setup-section { display: flex; flex-direction: column; gap: 8px; }
+    .setup-section label {
+      font-weight: 700; font-size: 1em; color: #2c3e50; letter-spacing: 0.03em;
+    }
+    .mode-btns, .quiz-source-btns { display: flex; gap: 12px; }
+    .mode-btn, .quiz-source-btn {
+      flex: 1; padding: 14px 16px; border: 2px solid #dcedc8; border-radius: 14px;
+      background: #ffffff; cursor: pointer; font-size: 0.95em; font-weight: 600;
+      transition: var(--transition); text-align: center; color: #2c3e50;
+    }
+    .mode-btn:hover, .quiz-source-btn:hover {
+      border-color: #a5d6a7; background: #f1f9f2; transform: translateY(-2px);
+    }
+    .mode-btn.active, .quiz-source-btn.active {
+      border-color: var(--accent2); background: #e8f5e9; color: #1e5d4c;
+      box-shadow: 0 0 0 4px rgba(39, 174, 96, 0.1);
+    }
+    .custom-input-area textarea {
+      width: 100%; min-height: 130px; border: 2px solid #dcedc8; border-radius: 14px;
+      padding: 14px; font-size: 0.95em; resize: vertical; font-family: inherit;
+      background: #f9fefb; color: #2c3e50; transition: var(--transition); line-height: 1.6;
+    }
+    .custom-input-area textarea:focus {
+      outline: none; border-color: #66bb6a; box-shadow: 0 0 0 3px rgba(102, 187, 106, 0.15);
+    }
+    .btn-start {
+      padding: 16px 32px; background: #27ae60; color: #fff; border: none;
+      border-radius: 16px; font-size: 1.2em; font-weight: 700; cursor: pointer;
+      letter-spacing: 0.06em; transition: var(--transition);
+      box-shadow: 0 6px 18px rgba(39, 174, 96, 0.3); text-align: center;
+    }
+    .btn-start:hover {
+      background: #219a52; transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(39, 174, 96, 0.4);
+    }
+    .btn-start:disabled { background: #b0bec5; cursor: not-allowed; box-shadow: none; transform: none; }
+
+    /* 游戏面板 */
+    .game-panel {
+      display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap;
+      justify-content: center; width: 100%;
+    }
+    .board-wrapper {
+      background: #ffffff; border-radius: 24px; box-shadow: var(--shadow);
+      padding: 18px; border: 1px solid rgba(0,0,0,0.04); flex-shrink: 0;
+    }
+    .board-wrapper canvas {
+      display: block; max-width: 100%; height: auto; border-radius: 12px;
+    }
+    .side-panel {
+      background: var(--panel-bg); border-radius: 24px; box-shadow: var(--shadow);
+      padding: 26px 22px; display: flex; flex-direction: column; gap: 18px;
+      min-width: 250px; max-width: 380px; border: 1px solid rgba(0,0,0,0.04); flex: 1;
+    }
+    .player-indicator {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+      border-radius: 14px; font-weight: 700; font-size: 1em;
+    }
+    .player-indicator.p1 { background: #ffebee; border: 2px solid #ffcdd2; color: #c62828; }
+    .player-indicator.p2 { background: #e3f2fd; border: 2px solid #bbdefb; color: #1565c0; }
+    .player-indicator .dot {
+      width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+      border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    .player-indicator.p1 .dot { background: var(--player1); }
+    .player-indicator.p2 .dot { background: var(--player2); }
+    .player-indicator.active-player {
+      box-shadow: 0 0 0 5px rgba(243, 156, 18, 0.3);
+      border-color: var(--gold);
+      animation: pulse-border 1.8s ease-in-out infinite;
+    }
+    @keyframes pulse-border {
+      0%,100%{ box-shadow: 0 0 0 5px rgba(243, 156, 18, 0.3); }
+      50%{ box-shadow: 0 0 0 10px rgba(243, 156, 18, 0.1); }
+    }
+    .dice-area { display: flex; align-items: center; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .dice-display {
+      width: 85px; height: 85px; background: #fff; border: 3px solid #e0e0e0;
+      border-radius: 18px; display: flex; align-items: center; justify-content: center;
+      font-size: 3em; font-weight: 900; color: #2c3e50; transition: var(--transition);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    }
+    .dice-display.rolling {
+      animation: dice-shake 0.5s ease-in-out; border-color: var(--gold);
+      box-shadow: 0 0 24px rgba(243, 156, 18, 0.4);
+    }
+    @keyframes dice-shake {
+      0%,100%{ transform: rotate(0); }
+      15%{ transform: rotate(28deg) scale(1.08); }
+      30%{ transform: rotate(-22deg) scale(1.05); }
+      45%{ transform: rotate(16deg) scale(1.07); }
+      60%{ transform: rotate(-12deg) scale(1.03); }
+      75%{ transform: rotate(6deg); }
+      90%{ transform: rotate(-3deg); }
+    }
+    .btn-roll {
+      padding: 14px 28px; background: var(--gold); color: #2c3e50; border: none;
+      border-radius: 14px; font-size: 1.1em; font-weight: 700; cursor: pointer;
+      letter-spacing: 0.04em; transition: var(--transition);
+      box-shadow: 0 4px 14px rgba(243, 156, 18, 0.3);
+    }
+    .btn-roll:hover { background: #e67e22; transform: translateY(-2px); }
+    .btn-roll:disabled { background: #cfd8dc; cursor: not-allowed; box-shadow: none; color: #78909c; }
+    .status-msg { text-align: center; font-weight: 600; font-size: 0.95em; min-height: 26px; color: #37474f; }
+    .btn-back {
+      padding: 12px 20px; background: #fff; border: 2px solid #dcedc8;
+      border-radius: 12px; cursor: pointer; font-weight: 600; transition: var(--transition);
+      color: #2c3e50; text-align: center;
+    }
+    .btn-back:hover { border-color: #a5d6a7; background: #f1f9f2; }
+
+    /* 弹窗 */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(30, 20, 10, 0.5); z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+      animation: fade-in 0.2s ease;
+    }
+    @keyframes fade-in { from{opacity:0;} to{opacity:1;} }
+    .modal-dialog {
+      background: #fff; border-radius: 24px; box-shadow: 0 16px 50px rgba(0,0,0,0.2);
+      padding: 32px 26px; max-width: 480px; width: 90%;
+      display: flex; flex-direction: column; gap: 18px;
+      animation: slide-up 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes slide-up { from{transform:translateY(40px);opacity:0;} to{transform:translateY(0);opacity:1;} }
+    .q-type-badge { padding: 6px 16px; border-radius: 24px; font-size: 0.85em; font-weight: 700; align-self: center; }
+    .badge-choice { background: #e8f5e9; color: #2e7d32; }
+    .badge-writing { background: #fff3e0; color: #ef6c00; }
+    .q-meaning { font-size: 1.4em; font-weight: 700; text-align: center; color: #1e5d4c; }
+    .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .option-btn {
+      padding: 16px 10px; border: 2px solid #e0e0e0; border-radius: 14px;
+      background: #fff; cursor: pointer; font-size: 1.05em; font-weight: 600;
+      transition: var(--transition); text-align: center; color: #2c3e50;
+    }
+    .option-btn:hover { border-color: #66bb6a; background: #f1f8f2; }
+    .writing-btns { display: flex; gap: 14px; justify-content: center; }
+    .btn-correct, .btn-wrong {
+      padding: 14px 28px; border: none; border-radius: 14px; font-size: 1.05em; font-weight: 700; cursor: pointer;
+    }
+    .btn-correct { background: #27ae60; color: #fff; }
+    .btn-wrong { background: #e74c3c; color: #fff; }
+    .hidden { display: none !important; }
+
+    @media (max-width: 950px) {
+      .game-panel { flex-direction: column; align-items: center; }
+      .side-panel { max-width: 100%; width: 100%; }
+      .board-wrapper { padding: 10px; }
+      .board-wrapper canvas { max-width: 95vw; }
+    }
+    @media (max-width: 500px) {
+      .setup-panel { padding: 20px 15px; }
+      .mode-btn, .quiz-source-btn { padding: 10px 8px; font-size: 0.85em; }
+      .dice-display { width: 60px; height: 60px; font-size: 2.2em; }
+    }
+  </style>
+</head>
+<body>
+<div class="main-container" id="setupContainer">
+  <div class="setup-panel" id="setupPanel">
+    <h2><span class="icon">🐍</span> 蛇棋中文学习 <span class="icon">🪜</span></h2>
+    <div class="setup-section">
+      <label>🎮 游戏模式</label>
+      <div class="mode-btns" id="modeBtns">
+        <button class="mode-btn active" data-mode="single">👤 单人</button>
+        <button class="mode-btn" data-mode="double">👥 双人</button>
+      </div>
+    </div>
+    <div class="setup-section">
+      <label>📚 题库选择</label>
+      <div class="quiz-source-btns" id="quizSourceBtns">
+        <button class="quiz-source-btn active" data-source="hsk1">📖 HSK1</button>
+        <button class="quiz-source-btn" data-source="custom">✏️ 自定义</button>
+      </div>
+    </div>
+    <div class="custom-input-area hidden" id="customInputArea">
+      <label style="font-weight:700;">📝 输入词语（词语,意思）</label>
+      <textarea id="customQuizInput" placeholder="你好,Hello&#10;谢谢,Thank you&#10;学校,School&#10;朋友,Friend&#10;水,Water&#10;苹果,Apple"></textarea>
+      <div style="font-size:0.8em; color:#546e7a;">💡 用逗号分隔，至少4组</div>
+    </div>
+    <button class="btn-start" id="btnStart">🎲 开始游戏</button>
+  </div>
+</div>
+
+<div class="game-panel hidden" id="gameContainer">
+  <div class="board-wrapper" id="boardWrapper">
+    <canvas id="boardCanvas"></canvas>
+  </div>
+  <div class="side-panel" id="sidePanel">
+    <h3 style="color:#1e5d4c; text-align:center;">🎯 游戏中</h3>
+    <div id="playerIndicators">
+      <div class="player-indicator p1 active-player" id="indicatorP1"><span class="dot"></span> 玩家一 · <strong id="posP1">1</strong></div>
+      <div class="player-indicator p2 hidden" id="indicatorP2"><span class="dot"></span> 玩家二 · <strong id="posP2">1</strong></div>
+    </div>
+    <div class="dice-area">
+      <div class="dice-display" id="diceDisplay">?</div>
+      <button class="btn-roll" id="btnRoll">🎲 掷骰子</button>
+    </div>
+    <div class="status-msg" id="statusMsg">准备开始！</div>
+    <div style="display:flex; gap:12px; justify-content:center; font-size:0.8em; color:#546e7a;">
+      <span>🐍 蛇身</span><span>🪜 梯子</span>
+    </div>
+    <button class="btn-back" id="btnBack">🔙 返回设置</button>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal-dialog" id="modalDialog">
+    <span class="q-type-badge" id="qTypeBadge">选择题</span>
+    <div class="q-meaning" id="qMeaning"></div>
+    <div class="q-prompt" id="qPrompt" style="text-align:center;"></div>
+    <div class="options-grid hidden" id="optionsGrid"></div>
+    <div class="writing-btns hidden" id="writingBtns">
+      <button class="btn-correct" id="btnWritingCorrect">✅ 正确</button>
+      <button class="btn-wrong" id="btnWritingWrong">❌ 错误</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const HSK1_QUIZ = [
+      { word: '我', meaning: 'I, me' }, { word: '你', meaning: 'you' }, { word: '他', meaning: 'he' },
+      { word: '她', meaning: 'she' }, { word: '我们', meaning: 'we' }, { word: '这', meaning: 'this' },
+      { word: '那', meaning: 'that' }, { word: '什么', meaning: 'what' }, { word: '谁', meaning: 'who' },
+      { word: '哪', meaning: 'where' }, { word: '不', meaning: 'not' }, { word: '很', meaning: 'very' },
+      { word: '和', meaning: 'and' }, { word: '在', meaning: 'at' }, { word: '有', meaning: 'have' },
+      { word: '是', meaning: 'be' }, { word: '去', meaning: 'go' }, { word: '来', meaning: 'come' },
+      { word: '想', meaning: 'want' }, { word: '说', meaning: 'say' }, { word: '看', meaning: 'look' },
+      { word: '吃', meaning: 'eat' }, { word: '喝', meaning: 'drink' }, { word: '买', meaning: 'buy' },
+      { word: '家', meaning: 'home' }, { word: '学校', meaning: 'school' }, { word: '商店', meaning: 'shop' },
+      { word: '医生', meaning: 'doctor' }, { word: '老师', meaning: 'teacher' }, { word: '学生', meaning: 'student' },
+      { word: '朋友', meaning: 'friend' }, { word: '爸爸', meaning: 'dad' }, { word: '妈妈', meaning: 'mom' },
+      { word: '水', meaning: 'water' }, { word: '茶', meaning: 'tea' }, { word: '米饭', meaning: 'rice' },
+      { word: '苹果', meaning: 'apple' }, { word: '钱', meaning: 'money' }, { word: '书', meaning: 'book' },
+      { word: '电脑', meaning: 'computer' }, { word: '天气', meaning: 'weather' }, { word: '好', meaning: 'good' },
+      { word: '大', meaning: 'big' }, { word: '小', meaning: 'small' }, { word: '多', meaning: 'many' },
+      { word: '高兴', meaning: 'happy' }, { word: '喜欢', meaning: 'like' }, { word: '爱', meaning: 'love' },
+      { word: '今天', meaning: 'today' }, { word: '明天', meaning: 'tomorrow' }, { word: '昨天', meaning: 'yesterday' }
+    ];
+
+    const SNAKES = [
+      { head: 97, tail: 78 }, { head: 93, tail: 68 }, { head: 86, tail: 53 },
+      { head: 72, tail: 35 }, { head: 64, tail: 19 }, { head: 51, tail: 16 },
+      { head: 44, tail: 22 }, { head: 38, tail: 8 }
+    ];
+    const LADDERS = [
+      { bottom: 4, top: 25 }, { bottom: 13, top: 46 }, { bottom: 27, top: 55 },
+      { bottom: 33, top: 62 }, { bottom: 42, top: 73 }, { bottom: 50, top: 81 },
+      { bottom: 59, top: 88 }, { bottom: 70, top: 96 }
+    ];
+
+    const snakeMap = {}; const ladderMap = {};
+    SNAKES.forEach(s => snakeMap[s.head] = s.tail);
+    LADDERS.forEach(l => ladderMap[l.bottom] = l.top);
+
+    let gameMode = 'single'; let quizSource = 'hsk1'; let quizBank = [...HSK1_QUIZ];
+    let customQuizData = []; let currentPlayer = 1;
+    let playerPositions = { 1: 1, 2: 1 }; let gameActive = false;
+    let diceValue = 1; let isRolling = false; let pendingQuestion = null;
+    let animationInProgress = false;
+
+    const canvas = document.getElementById('boardCanvas');
+    const ctx = canvas.getContext('2d');
+    const CANVAS_INTERNAL = 1000;
+    const BOARD_OFFSET = 45;
+    const BOARD_SIZE = CANVAS_INTERNAL - BOARD_OFFSET * 2;
+    const CELL_SIZE = BOARD_SIZE / 10;
+
+    function resizeCanvas() {
+      const wrapper = document.getElementById('boardWrapper');
+      const maxWidth = Math.min(wrapper.clientWidth - 36, 800);
+      canvas.width = CANVAS_INTERNAL;
+      canvas.height = CANVAS_INTERNAL;
+      canvas.style.width = maxWidth + 'px';
+      canvas.style.height = maxWidth + 'px';
+    }
+
+    function getCellCenter(n) {
+      const row = Math.floor((n - 1) / 10);
+      const col = (n - 1) % 10;
+      const x = BOARD_OFFSET + (row % 2 === 0 ? col : 9 - col) * CELL_SIZE + CELL_SIZE / 2;
+      const y = BOARD_OFFSET + (9 - row) * CELL_SIZE + CELL_SIZE / 2;
+      return { x, y, row, col };
+    }
+
+    function drawSnake(s) {
+      const head = getCellCenter(s.head);
+      const tail = getCellCenter(s.tail);
+      const dx = tail.x - head.x, dy = tail.y - head.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 1) return;
+      const perpX = -dy/dist, perpY = dx/dist;
+      const mid = { x: (head.x+tail.x)/2, y: (head.y+tail.y)/2 };
+      const cp = { x: mid.x + perpX * Math.min(dist*0.4, 90), y: mid.y + perpY * Math.min(dist*0.4, 90) };
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.2)'; ctx.shadowBlur = 8;
+      ctx.strokeStyle = '#2e7d32'; ctx.lineWidth = CELL_SIZE * 0.38; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(head.x, head.y);
+      ctx.quadraticCurveTo(cp.x, cp.y, tail.x, tail.y); ctx.stroke();
+
+      ctx.strokeStyle = '#81c784'; ctx.lineWidth = CELL_SIZE * 0.15;
+      ctx.beginPath(); ctx.moveTo(head.x, head.y);
+      ctx.quadraticCurveTo(cp.x, cp.y, tail.x, tail.y); ctx.stroke();
+
+      const angle = Math.atan2(tail.y - cp.y, tail.x - cp.x);
+      const hx = head.x, hy = head.y;
+      ctx.save(); ctx.translate(hx, hy); ctx.rotate(angle);
+      ctx.fillStyle = '#1b5e20'; ctx.shadowBlur = 6;
+      ctx.beginPath(); ctx.ellipse(0, 0, CELL_SIZE*0.28, CELL_SIZE*0.2, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.shadowBlur = 2;
+      ctx.beginPath(); ctx.arc(-CELL_SIZE*0.13, -CELL_SIZE*0.08, CELL_SIZE*0.07, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(CELL_SIZE*0.13, -CELL_SIZE*0.08, CELL_SIZE*0.07, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#000'; ctx.beginPath();
+      ctx.arc(-CELL_SIZE*0.14, -CELL_SIZE*0.09, CELL_SIZE*0.03, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(CELL_SIZE*0.12, -CELL_SIZE*0.09, CELL_SIZE*0.03, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#c62828'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(CELL_SIZE*0.2, 0); ctx.lineTo(CELL_SIZE*0.35, -CELL_SIZE*0.06);
+      ctx.moveTo(CELL_SIZE*0.2, 0); ctx.lineTo(CELL_SIZE*0.35, CELL_SIZE*0.06); ctx.stroke();
+      ctx.restore(); ctx.restore();
+    }
+
+    function drawLadder(l) {
+      const bottom = getCellCenter(l.bottom);
+      const top = getCellCenter(l.top);
+      const dx = top.x - bottom.x, dy = top.y - bottom.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 1) return;
+      const perpX = -dy/dist, perpY = dx/dist;
+      const offset = CELL_SIZE * 0.28;
+
+      ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.2)'; ctx.shadowBlur = 6;
+      ctx.strokeStyle = '#6d4c41'; ctx.lineWidth = 7; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(bottom.x + perpX*offset, bottom.y + perpY*offset);
+      ctx.lineTo(top.x + perpX*offset, top.y + perpY*offset); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(bottom.x - perpX*offset, bottom.y - perpY*offset);
+      ctx.lineTo(top.x - perpX*offset, top.y - perpY*offset); ctx.stroke();
+
+      ctx.strokeStyle = '#8d6e63'; ctx.lineWidth = 5;
+      const steps = Math.floor(dist / (CELL_SIZE * 0.65));
+      for (let i = 1; i <= steps; i++) {
+        const t = i / (steps + 1);
+        const rx = bottom.x + dx * t, ry = bottom.y + dy * t;
+        ctx.beginPath(); ctx.moveTo(rx + perpX*offset, ry + perpY*offset);
+        ctx.lineTo(rx - perpX*offset, ry - perpY*offset); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawBoard() {
+      ctx.clearRect(0, 0, CANVAS_INTERNAL, CANVAS_INTERNAL);
+      ctx.fillStyle = '#f4faf8';
+      ctx.beginPath(); ctx.roundRect(BOARD_OFFSET-10, BOARD_OFFSET-10, BOARD_SIZE+20, BOARD_SIZE+20, 20); ctx.fill();
+      ctx.strokeStyle = '#c8e6c9'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.roundRect(BOARD_OFFSET-10, BOARD_OFFSET-10, BOARD_SIZE+20, BOARD_SIZE+20, 20); ctx.stroke();
+
+      for (let n = 1; n <= 100; n++) {
+        const { x, y, row } = getCellCenter(n);
+        const cx = x - CELL_SIZE/2, cy = y - CELL_SIZE/2;
+        ctx.fillStyle = (row % 2 === 0) ? '#ffffff' : '#f0faf5';
+        ctx.beginPath(); ctx.roundRect(cx+2, cy+2, CELL_SIZE-4, CELL_SIZE-4, 10); ctx.fill();
+        ctx.strokeStyle = '#dcedc8'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.roundRect(cx+2, cy+2, CELL_SIZE-4, CELL_SIZE-4, 10); ctx.stroke();
+
+        ctx.fillStyle = '#1e5d4c'; ctx.font = 'bold 18px "Noto Sans SC"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(n, x, y - CELL_SIZE*0.3);
+      }
+
+      SNAKES.forEach(s => drawSnake(s));
+      LADDERS.forEach(l => drawLadder(l));
+
+      const end = getCellCenter(100);
+      ctx.fillStyle = '#ffb300'; ctx.font = 'bold 36px "Segoe UI Emoji"'; ctx.fillText('🏆', end.x, end.y - CELL_SIZE*0.32);
+      const start = getCellCenter(1);
+      ctx.fillStyle = '#546e7a'; ctx.font = 'bold 14px "Noto Sans SC"'; ctx.fillText('起点', start.x, start.y - CELL_SIZE*0.38);
+
+      drawPlayer(1, playerPositions[1]);
+      if (gameMode === 'double') drawPlayer(2, playerPositions[2]);
+    }
+
+    function drawPlayer(num, pos) {
+      if (pos < 1 || pos > 100) return;
+      const { x, y } = getCellCenter(pos);
+      const offset = (num === 2 && playerPositions[1] === pos) ? CELL_SIZE*0.2 : 0;
+      const cx = x + offset, cy = y;
+      ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 8;
+      const grad = ctx.createRadialGradient(cx-5, cy-8, 5, cx, cy, CELL_SIZE*0.4);
+      if (num === 1) { grad.addColorStop(0, '#ff5252'); grad.addColorStop(1, '#b71c1c'); }
+      else { grad.addColorStop(0, '#448aff'); grad.addColorStop(1, '#0d47a1'); }
+      ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(cx, cy, CELL_SIZE*0.35, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.font = `bold ${CELL_SIZE*0.4}px "Segoe UI"`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(num, cx, cy); ctx.restore();
+    }
+
+    // UI 元素
+    const setupContainer = document.getElementById('setupContainer');
+    const gameContainer = document.getElementById('gameContainer');
+    const modeBtns = document.getElementById('modeBtns');
+    const quizSourceBtns = document.getElementById('quizSourceBtns');
+    const customInputArea = document.getElementById('customInputArea');
+    const customQuizInput = document.getElementById('customQuizInput');
+    const btnStart = document.getElementById('btnStart');
+    const btnRoll = document.getElementById('btnRoll');
+    const btnBack = document.getElementById('btnBack');
+    const diceDisplay = document.getElementById('diceDisplay');
+    const statusMsg = document.getElementById('statusMsg');
+    const posP1 = document.getElementById('posP1');
+    const posP2 = document.getElementById('posP2');
+    const indicatorP1 = document.getElementById('indicatorP1');
+    const indicatorP2 = document.getElementById('indicatorP2');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const qTypeBadge = document.getElementById('qTypeBadge');
+    const qMeaning = document.getElementById('qMeaning');
+    const qPrompt = document.getElementById('qPrompt');
+    const optionsGrid = document.getElementById('optionsGrid');
+    const writingBtns = document.getElementById('writingBtns');
+    const btnWritingCorrect = document.getElementById('btnWritingCorrect');
+    const btnWritingWrong = document.getElementById('btnWritingWrong');
+
+    // 设置面板事件
+    modeBtns.querySelectorAll('.mode-btn').forEach(b => b.addEventListener('click', (e) => {
+      modeBtns.querySelectorAll('.mode-btn').forEach(x => x.classList.remove('active'));
+      e.target.classList.add('active'); gameMode = e.target.dataset.mode;
+    }));
+    quizSourceBtns.querySelectorAll('.quiz-source-btn').forEach(b => b.addEventListener('click', (e) => {
+      quizSourceBtns.querySelectorAll('.quiz-source-btn').forEach(x => x.classList.remove('active'));
+      e.target.classList.add('active'); quizSource = e.target.dataset.source;
+      customInputArea.classList.toggle('hidden', quizSource !== 'custom');
+    }));
+
+    btnStart.addEventListener('click', () => {
+      if (quizSource === 'hsk1') quizBank = [...HSK1_QUIZ];
+      else {
+        const raw = customQuizInput.value.trim();
+        if (!raw) return alert('请输入自定义题库！');
+        const parsed = raw.split('\n').filter(l=>l.trim()).map(l=>{
+          const p=l.split(/[,，\t:：]/); return p.length>=2?{word:p[0].trim(), meaning:p.slice(1).join(',').trim()}:null;
+        }).filter(Boolean);
+        if (parsed.length < 4) return alert('至少需要4组词语！');
+        quizBank = parsed; customQuizData = parsed;
+      }
+      playerPositions = {1:1,2:1}; currentPlayer=1; gameActive=true; diceValue=1; isRolling=false; pendingQuestion=null; animationInProgress=false;
+      diceDisplay.textContent='?'; statusMsg.textContent='准备开始！'; posP1.textContent='1'; posP2.textContent='1';
+      btnRoll.disabled=false; updateIndicators();
+      indicatorP2.classList.toggle('hidden', gameMode!=='double');
+      setupContainer.classList.add('hidden'); gameContainer.classList.remove('hidden');
+      resizeCanvas(); drawBoard();
+    });
+
+    btnBack.addEventListener('click', () => {
+      gameActive=false; modalOverlay.classList.add('hidden'); gameContainer.classList.add('hidden'); setupContainer.classList.remove('hidden');
+    });
+
+    function updateIndicators() {
+      posP1.textContent=playerPositions[1]; posP2.textContent=playerPositions[2];
+      indicatorP1.classList.toggle('active-player', currentPlayer===1&&gameActive);
+      indicatorP2.classList.toggle('active-player', currentPlayer===2&&gameActive);
+    }
+
+    btnRoll.addEventListener('click', () => {
+      if(!gameActive||isRolling||animationInProgress||pendingQuestion) return;
+      isRolling=true; btnRoll.disabled=true; statusMsg.textContent='🎲 掷骰子中...';
+      let count=0;
+      function anim() {
+        diceValue=Math.floor(Math.random()*6)+1; diceDisplay.textContent=diceValue; diceDisplay.classList.add('rolling'); count++;
+        if(count<10) setTimeout(anim, 70);
+        else {
+          diceValue=Math.floor(Math.random()*6)+1; diceDisplay.textContent=diceValue;
+          setTimeout(()=>{ diceDisplay.classList.remove('rolling'); isRolling=false; presentQuestion(); }, 200);
+        }
+      }
+      anim();
+    });
+
+    function presentQuestion() {
+      if(!gameActive) return;
+      const isChoice = Math.random()<0.5;
+      const q = quizBank[Math.floor(Math.random()*quizBank.length)];
+      pendingQuestion = { q, isChoice, correct: q.word };
+      qMeaning.textContent = '「'+q.meaning+'」';
+      if(isChoice) {
+        qTypeBadge.textContent='📝 选择题'; qTypeBadge.className='q-type-badge badge-choice';
+        qPrompt.textContent='选出正确的中文词语：'; optionsGrid.classList.remove('hidden'); writingBtns.classList.add('hidden');
+        const others = quizBank.filter(x=>x.word!==q.word).map(x=>x.word).sort(()=>Math.random()-0.5).slice(0,3);
+        const opts = [q.word, ...others].sort(()=>Math.random()-0.5);
+        optionsGrid.innerHTML = '';
+        opts.forEach(opt => {
+          const btn = document.createElement('button'); btn.className='option-btn'; btn.textContent=opt;
+          btn.addEventListener('click', ()=> handleChoice(opt, q.word, btn));
+          optionsGrid.appendChild(btn);
+        });
+      } else {
+        qTypeBadge.textContent='✍️ 写字题'; qTypeBadge.className='q-type-badge badge-writing';
+        qPrompt.textContent='在纸上写出词语，老师判断：'; optionsGrid.classList.add('hidden'); writingBtns.classList.remove('hidden');
+        // 确保按钮可用并移除之前可能遗留的禁用状态
+        btnWritingCorrect.disabled = false;
+        btnWritingWrong.disabled = false;
+      }
+      modalOverlay.classList.remove('hidden');
+    }
+
+    function handleChoice(selected, correct, btn) {
+      if(!pendingQuestion) return;
+      const all = optionsGrid.querySelectorAll('.option-btn'); all.forEach(b=>b.disabled=true);
+      const isCorrect = selected===correct;
+      if(isCorrect) { btn.classList.add('correct-flash'); statusMsg.textContent='✅ 正确！'; }
+      else { btn.classList.add('wrong-flash'); all.forEach(b=>{if(b.textContent===correct) b.classList.add('correct-flash');}); statusMsg.textContent='❌ 错误！答案是：'+correct; }
+      setTimeout(()=>{
+        modalOverlay.classList.add('hidden');
+        const p = pendingQuestion; pendingQuestion=null;
+        processResult(isCorrect);
+      }, 1000);
+    }
+
+    // 修正写字题按钮：禁用按钮并清除 pendingQuestion，防止重复点击
+    btnWritingCorrect.addEventListener('click', () => {
+      if(!pendingQuestion) return;
+      btnWritingCorrect.disabled = true;
+      btnWritingWrong.disabled = true;
+      modalOverlay.classList.add('hidden');
+      statusMsg.textContent='✅ 老师评定：正确！';
+      const p = pendingQuestion; pendingQuestion = null;
+      processResult(true);
+    });
+    btnWritingWrong.addEventListener('click', () => {
+      if(!pendingQuestion) return;
+      btnWritingCorrect.disabled = true;
+      btnWritingWrong.disabled = true;
+      modalOverlay.classList.add('hidden');
+      statusMsg.textContent='❌ 老师评定：错误。';
+      const p = pendingQuestion; pendingQuestion = null;
+      processResult(false);
+    });
+
+    function processResult(isCorrect) {
+      if(!gameActive) return;
+      const player = currentPlayer;
+      if(!isCorrect) { updateIndicators(); drawBoard(); setTimeout(switchPlayer, 1200); return; }
+      let newPos = playerPositions[player] + diceValue;
+      if(newPos>100) newPos = 100 - (newPos-100);
+      animateMove(player, playerPositions[player], newPos, ()=>{
+        playerPositions[player]=newPos; updateIndicators(); drawBoard();
+        checkSnakeLadder(player, newPos);
+      });
+    }
+
+    function checkSnakeLadder(player, pos) {
+      if(snakeMap[pos]) {
+        const tail = snakeMap[pos];
+        statusMsg.textContent = `🐍 踩到蛇头！滑落到 ${tail}`;
+        setTimeout(()=> animateMove(player, pos, tail, ()=>{
+          playerPositions[player]=tail; updateIndicators(); drawBoard();
+          statusMsg.textContent=`📍 玩家${player} 在 ${tail}`; setTimeout(switchPlayer, 1000);
+        }), 600);
+      } else if(ladderMap[pos]) {
+        const top = ladderMap[pos];
+        statusMsg.textContent = `🪜 爬上梯子！爬到 ${top}`;
+        setTimeout(()=> animateMove(player, pos, top, ()=>{
+          playerPositions[player]=top; updateIndicators(); drawBoard();
+          statusMsg.textContent=`📍 玩家${player} 在 ${top}`; setTimeout(switchPlayer, 1000);
+        }), 600);
+      } else {
+        if(pos===100) handleWin(player);
+        else { statusMsg.textContent=`📍 玩家${player} 在 ${pos}`; setTimeout(switchPlayer, 1000); }
+      }
+    }
+
+    function animateMove(player, from, to, cb) {
+      if(from===to) { cb(); return; }
+      animationInProgress=true; const startTime=performance.now(); const fromC=getCellCenter(from), toC=getCellCenter(to);
+      function anim(now) {
+        const t=Math.min((now-startTime)/500, 1); const ease=t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+        const cx=fromC.x+(toC.x-fromC.x)*ease, cy=fromC.y+(toC.y-fromC.y)*ease;
+        playerPositions[player]=-1; drawBoard();
+        ctx.save(); ctx.shadowColor='rgba(0,0,0,0.3)'; ctx.shadowBlur=8;
+        const grad=ctx.createRadialGradient(cx-5,cy-8,5,cx,cy,CELL_SIZE*0.4);
+        if(player===1){grad.addColorStop(0,'#ff5252');grad.addColorStop(1,'#b71c1c');}
+        else{grad.addColorStop(0,'#448aff');grad.addColorStop(1,'#0d47a1');}
+        ctx.fillStyle=grad; ctx.beginPath(); ctx.arc(cx,cy,CELL_SIZE*0.35,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle='#fff'; ctx.lineWidth=3; ctx.stroke();
+        ctx.fillStyle='#fff'; ctx.font=`bold ${CELL_SIZE*0.4}px "Segoe UI"`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(player,cx,cy);
+        ctx.restore();
+        if(t<1) requestAnimationFrame(anim);
+        else { playerPositions[player]=to; animationInProgress=false; drawBoard(); cb(); }
+      }
+      requestAnimationFrame(anim);
+    }
+
+    function handleWin(player) {
+      gameActive=false; btnRoll.disabled=true;
+      statusMsg.textContent=`🎉 玩家 ${player} 赢了！ 🎉`; updateIndicators(); drawBoard();
+    }
+
+    function switchPlayer() {
+      if(!gameActive) return;
+      if(gameMode==='double') currentPlayer = currentPlayer===1?2:1;
+      updateIndicators(); drawBoard(); btnRoll.disabled=false;
+      statusMsg.textContent = `🎯 玩家 ${currentPlayer} 的回合`;
+    }
+
+    window.addEventListener('resize', ()=>{ if(!gameContainer.classList.contains('hidden')) { resizeCanvas(); drawBoard(); } });
+    resizeCanvas(); drawBoard();
+  })();
+</script>
+</body>
+</html>
